@@ -1,10 +1,13 @@
-package test.dapuk.dicodingstory.ui
+package test.dapuk.dicodingstory.data.adapter
 
 import android.content.Intent
 import android.graphics.drawable.Drawable
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.paging.PagingDataAdapter
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -16,8 +19,9 @@ import test.dapuk.dicodingstory.data.response.ListStoryItem
 import test.dapuk.dicodingstory.databinding.ItemListStoryBinding
 import test.dapuk.dicodingstory.ui.detail.DetailActivity
 
-class ListStoriesAdapter(val listStories: ArrayList<ListStoryItem>) :
-    RecyclerView.Adapter<ListStoriesAdapter.ListStoriesHolder>() {
+class ListStoriesAdapter : PagingDataAdapter<ListStoryItem, ListStoriesAdapter.ListStoriesHolder>(
+    DIFF_CALLBACK
+) {
     class ListStoriesHolder(private var binding: ItemListStoryBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(stories: ListStoryItem) {
@@ -65,18 +69,29 @@ class ListStoriesAdapter(val listStories: ArrayList<ListStoryItem>) :
         return ListStoriesHolder(binding)
     }
 
-    override fun getItemCount(): Int {
-        return listStories.size
-    }
 
     override fun onBindViewHolder(holder: ListStoriesHolder, position: Int) {
-        val stories = listStories[position]
-        holder.bind(stories)
+        val stories = getItem(position)
+        Log.d("Adapter", "Item at position $position: $stories")
+        if (stories != null) {
+            holder.bind(stories)
 
-        holder.itemView.setOnClickListener {
-            val intentDetail = Intent(holder.itemView.context, DetailActivity::class.java)
-            intentDetail.putExtra("detailId", stories.id)
-            holder.itemView.context.startActivity(intentDetail)
+            holder.itemView.setOnClickListener {
+                val intentDetail = Intent(holder.itemView.context, DetailActivity::class.java)
+                intentDetail.putExtra("detailId", stories.id)
+                holder.itemView.context.startActivity(intentDetail)
+            }
+        }
+    }
+    companion object {
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<ListStoryItem>() {
+            override fun areItemsTheSame(oldItem: ListStoryItem, newItem: ListStoryItem): Boolean {
+                return oldItem == newItem
+            }
+
+            override fun areContentsTheSame(oldItem: ListStoryItem, newItem: ListStoryItem): Boolean {
+                return oldItem.id == newItem.id
+            }
         }
     }
 }

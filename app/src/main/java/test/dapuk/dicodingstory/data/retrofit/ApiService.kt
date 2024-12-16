@@ -10,6 +10,8 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
+import test.dapuk.dicodingstory.data.response.ListStoryItem
 import test.dapuk.dicodingstory.data.response.LoginResponse
 import test.dapuk.dicodingstory.data.response.RegisterResponse
 import test.dapuk.dicodingstory.data.response.StoryDetailResponse
@@ -35,6 +37,17 @@ interface ApiService {
     @GET("stories")
     suspend fun getStories(
         @Header("Authorization") authToken: String
+    ): StoryResponse
+    @GET("stories")
+    suspend fun getStoriesPaging(
+        @Header("Authorization") authToken: String,
+        @Query("page") page: Int = 1,
+        @Query("size") size: Int = 20
+    ): StoryResponse
+    @GET("stories")
+    suspend fun getStoriesLocation(
+        @Header("Authorization") authToken: String,
+        @Query("location") location : Int = 1
     ): StoryResponse
 
     @Multipart

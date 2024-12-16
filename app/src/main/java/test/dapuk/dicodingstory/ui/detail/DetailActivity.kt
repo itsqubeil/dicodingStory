@@ -24,6 +24,7 @@ import test.dapuk.dicodingstory.data.response.Story
 import test.dapuk.dicodingstory.data.retrofit.ApiConfig
 import test.dapuk.dicodingstory.data.sharedpref.SharedPreferenceManager
 import test.dapuk.dicodingstory.databinding.ActivityDetailBinding
+import test.dapuk.dicodingstory.ui.ViewModelFactory
 import test.dapuk.dicodingstory.ui.login.LoginActivity
 
 class DetailActivity : AppCompatActivity() {

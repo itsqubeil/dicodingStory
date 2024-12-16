@@ -12,16 +12,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import test.dapuk.dicodingstory.R
 import test.dapuk.dicodingstory.data.repository.StoryRepository
-import test.dapuk.dicodingstory.data.response.ListStoryItem
 import test.dapuk.dicodingstory.data.retrofit.ApiConfig
 import test.dapuk.dicodingstory.data.sharedpref.SharedPreferenceManager
 import test.dapuk.dicodingstory.databinding.ActivityMainBinding
-import test.dapuk.dicodingstory.ui.ListStoriesAdapter
+import test.dapuk.dicodingstory.data.adapter.ListStoriesAdapter
+import test.dapuk.dicodingstory.data.adapter.LoadingStateAdapter
 import test.dapuk.dicodingstory.ui.addstory.AddStoryActivity
 import test.dapuk.dicodingstory.ui.login.LoginActivity
+import test.dapuk.dicodingstory.ui.maps.MapsActivity
+import test.dapuk.dicodingstory.ui.ViewModelFactory
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -29,7 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mainViewModel: MainViewModel
     private lateinit var sharedPreferences: SharedPreferences
 
-    private val listStoriesAdapter = ListStoriesAdapter(arrayListOf())
+    private val listStoriesAdapter = ListStoriesAdapter()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -52,9 +55,11 @@ class MainActivity : AppCompatActivity() {
             finish()
         }
 
-        mainViewModel.listStories.observe(this) { listStories ->
-            setStoriesList(listStories)
-        }
+//        mainViewModel.listStories.observe(this) { listStories ->
+//            setStoriesList(listStories)
+//        }
+
+
 
         mainViewModel.isErr.observe(this) {
 
@@ -66,23 +71,50 @@ class MainActivity : AppCompatActivity() {
         mainViewModel.isLoading.observe(this) {
             loading(it)
         }
-
+        binding.btnMaps.setOnClickListener {
+            startActivity(Intent(this,MapsActivity::class.java))
+        }
         binding.rvStories.layoutManager = LinearLayoutManager(this)
-        binding.rvStories.adapter = listStoriesAdapter
+        binding.rvStories.adapter = listStoriesAdapter.withLoadStateFooter(
+            footer = LoadingStateAdapter {
+                listStoriesAdapter.retry()
+            })
         binding.floatingActionButton.setOnClickListener {
             startActivity(Intent(this@MainActivity, AddStoryActivity::class.java))
         }
-        setContentView(binding.root)
-    }
+        mainViewModel.story.observe(this, {
+            listStoriesAdapter.submitData(lifecycle, it)
+        })
 
-    private fun setStoriesList(storiesList: List<ListStoryItem>) {
-        listStoriesAdapter.apply {
-            listStories.clear()
-            listStories.addAll(storiesList)
-            notifyDataSetChanged()
+        binding.btnRetry.setOnClickListener {  listStoriesAdapter.retry() }
+
+        listStoriesAdapter.addLoadStateListener { loadState ->
+            binding.tvErr.visibility= View.GONE
+            binding.btnRetry.visibility = View.GONE
+            if (loadState.refresh is LoadState.Loading) {
+                loading(true)
+            } else {
+                loading(false)
+            }
+
+            if (loadState.refresh is LoadState.Error) {
+                binding.tvErr.text = "Cek koneksi dan coba lagi"
+                binding.tvErr.visibility= View.VISIBLE
+                binding.btnRetry.visibility = View.VISIBLE
+            }
         }
+        setContentView(binding.root)
 
     }
+
+//    private fun setStoriesList(storiesList: List<ListStoryItem>) {
+//        listStoriesAdapter.apply {
+//            listStories.clear()
+//            listStories.addAll(storiesList)
+//            notifyDataSetChanged()
+//        }
+//
+//    }
 
     fun loading(isLoading: Boolean) {
         if (isLoading != false) {
@@ -111,7 +143,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        mainViewModel.getStories()
+        mainViewModel.story.observe(this, {
+            listStoriesAdapter.submitData(lifecycle, it)
+        })
 
     }
 }

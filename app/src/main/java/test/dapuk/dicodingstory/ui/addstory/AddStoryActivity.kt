@@ -36,7 +36,7 @@ import test.dapuk.dicodingstory.data.sharedpref.SharedPreferenceManager
 import test.dapuk.dicodingstory.databinding.ActivityAddStoryBinding
 import test.dapuk.dicodingstory.ui.camera.CameraActivity
 import test.dapuk.dicodingstory.ui.camera.CameraActivity.Companion.CAMERAX_RESULT
-import test.dapuk.dicodingstory.ui.detail.ViewModelFactory
+import test.dapuk.dicodingstory.ui.ViewModelFactory
 import test.dapuk.dicodingstory.ui.login.LoginActivity
 import test.dapuk.dicodingstory.utils.reduceFileImage
 import test.dapuk.dicodingstory.utils.uriToFile
