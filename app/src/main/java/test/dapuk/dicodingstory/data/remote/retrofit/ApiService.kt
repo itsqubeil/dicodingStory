@@ -1,4 +1,4 @@
-package test.dapuk.dicodingstory.data.retrofit
+package test.dapuk.dicodingstory.data.remote.retrofit
 
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -11,11 +11,11 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
-import test.dapuk.dicodingstory.data.response.ListStoryItem
-import test.dapuk.dicodingstory.data.response.LoginResponse
-import test.dapuk.dicodingstory.data.response.RegisterResponse
-import test.dapuk.dicodingstory.data.response.StoryDetailResponse
-import test.dapuk.dicodingstory.data.response.StoryResponse
+import test.dapuk.dicodingstory.data.remote.response.ListStoryItem
+import test.dapuk.dicodingstory.data.remote.response.LoginResponse
+import test.dapuk.dicodingstory.data.remote.response.RegisterResponse
+import test.dapuk.dicodingstory.data.remote.response.StoryDetailResponse
+import test.dapuk.dicodingstory.data.remote.response.StoryResponse
 
 interface ApiService {
     @FormUrlEncoded
@@ -38,6 +38,7 @@ interface ApiService {
     suspend fun getStories(
         @Header("Authorization") authToken: String
     ): StoryResponse
+
     @GET("stories")
     suspend fun getStoriesPaging(
         @Header("Authorization") authToken: String,
@@ -56,6 +57,16 @@ interface ApiService {
         @Header("Authorization") authToken: String,
         @Part file: MultipartBody.Part,
         @Part("description") description: RequestBody
+    ): RegisterResponse
+
+    @Multipart
+    @POST("stories")
+    suspend fun addStoryLocation(
+        @Header("Authorization") authToken: String,
+        @Part file: MultipartBody.Part,
+        @Part("description") description: RequestBody,
+        @Part("lat") lat: Double,
+        @Part("lon") lon: Double
     ): RegisterResponse
 
     @GET("stories/{id}")

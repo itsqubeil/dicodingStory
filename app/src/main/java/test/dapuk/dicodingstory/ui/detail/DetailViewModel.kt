@@ -6,8 +6,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
-import test.dapuk.dicodingstory.data.repository.StoryRepository
-import test.dapuk.dicodingstory.data.response.Story
+import test.dapuk.dicodingstory.data.remote.repository.StoryRepository
+import test.dapuk.dicodingstory.data.remote.response.Story
 
 class DetailViewModel(private val storyRepository: StoryRepository) : ViewModel() {
     private val _detailStory = MutableLiveData<Story>()

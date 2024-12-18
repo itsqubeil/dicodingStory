@@ -19,10 +19,11 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import test.dapuk.dicodingstory.R
-import test.dapuk.dicodingstory.data.repository.StoryRepository
-import test.dapuk.dicodingstory.data.response.Story
-import test.dapuk.dicodingstory.data.retrofit.ApiConfig
-import test.dapuk.dicodingstory.data.sharedpref.SharedPreferenceManager
+import test.dapuk.dicodingstory.data.local.room.StoryDatabase
+import test.dapuk.dicodingstory.data.remote.repository.StoryRepository
+import test.dapuk.dicodingstory.data.remote.response.Story
+import test.dapuk.dicodingstory.data.remote.retrofit.ApiConfig
+import test.dapuk.dicodingstory.data.local.sharedpref.SharedPreferenceManager
 import test.dapuk.dicodingstory.databinding.ActivityDetailBinding
 import test.dapuk.dicodingstory.ui.ViewModelFactory
 import test.dapuk.dicodingstory.ui.login.LoginActivity
@@ -30,6 +31,7 @@ import test.dapuk.dicodingstory.ui.login.LoginActivity
 class DetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityDetailBinding
     private lateinit var sharedPreferencesManager: SharedPreferenceManager
+    private lateinit var storyDatabase: StoryDatabase
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityDetailBinding.inflate(layoutInflater)
@@ -37,7 +39,8 @@ class DetailActivity : AppCompatActivity() {
         val sharedPreferences: SharedPreferences =
             getSharedPreferences("SESSION", Context.MODE_PRIVATE)
         val apiService = ApiConfig.getApiService()
-        val storyRepository = StoryRepository(apiService, sharedPreferences)
+        storyDatabase = StoryDatabase.getInstance(this)
+        val storyRepository = StoryRepository(apiService, sharedPreferences, storyDatabase)
         val viewModelFactory = ViewModelFactory(storyRepository)
         val detailViewModel =
             ViewModelProvider(this, viewModelFactory).get(DetailViewModel::class.java)

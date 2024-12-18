@@ -1,18 +1,22 @@
 package test.dapuk.dicodingstory.ui.camera
 
+import android.Manifest
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.OrientationEventListener
 import android.view.Surface
 import android.widget.Toast
+import android.content.pm.PackageManager
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import test.dapuk.dicodingstory.databinding.ActivityCameraBinding
 import test.dapuk.dicodingstory.utils.createCustomTempFile
@@ -25,6 +29,15 @@ class CameraActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityCameraBinding.inflate(layoutInflater)
         enableEdgeToEdge()
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestCameraPermission()
+        } else {
+            startCamera()
+        }
         binding.switchCamera.setOnClickListener {
             cameraSelector =
                 if (cameraSelector.equals(CameraSelector.DEFAULT_BACK_CAMERA)) CameraSelector.DEFAULT_FRONT_CAMERA
@@ -35,10 +48,21 @@ class CameraActivity : AppCompatActivity() {
         binding.captureImage.setOnClickListener {
             takePhoto()
         }
-        startCamera()
         setContentView(binding.root)
     }
 
+    private fun requestCameraPermission() {
+        val requestPermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+                if (isGranted) {
+                    startCamera()
+                } else {
+                    Toast.makeText(this, "Kamera tidak diizinkan", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+        requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+    }
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({

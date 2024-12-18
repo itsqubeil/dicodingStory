@@ -1,5 +1,6 @@
 package test.dapuk.dicodingstory.ui.main
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -8,6 +9,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -15,31 +17,40 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import test.dapuk.dicodingstory.R
-import test.dapuk.dicodingstory.data.repository.StoryRepository
-import test.dapuk.dicodingstory.data.retrofit.ApiConfig
-import test.dapuk.dicodingstory.data.sharedpref.SharedPreferenceManager
-import test.dapuk.dicodingstory.databinding.ActivityMainBinding
 import test.dapuk.dicodingstory.data.adapter.ListStoriesAdapter
 import test.dapuk.dicodingstory.data.adapter.LoadingStateAdapter
+import test.dapuk.dicodingstory.data.local.room.StoryDatabase
+import test.dapuk.dicodingstory.data.local.sharedpref.SharedPreferenceManager
+import test.dapuk.dicodingstory.data.remote.repository.StoryRepository
+import test.dapuk.dicodingstory.data.remote.retrofit.ApiConfig
+import test.dapuk.dicodingstory.databinding.ActivityMainBinding
+import test.dapuk.dicodingstory.ui.ViewModelFactory
 import test.dapuk.dicodingstory.ui.addstory.AddStoryActivity
 import test.dapuk.dicodingstory.ui.login.LoginActivity
 import test.dapuk.dicodingstory.ui.maps.MapsActivity
-import test.dapuk.dicodingstory.ui.ViewModelFactory
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var sharedPreferencesManager: SharedPreferenceManager
     private lateinit var mainViewModel: MainViewModel
     private lateinit var sharedPreferences: SharedPreferences
-
+    private lateinit var storyDatabase: StoryDatabase
     private val listStoriesAdapter = ListStoriesAdapter()
+    private val addStoryLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            listStoriesAdapter.refresh()
+            binding.rvStories.smoothScrollToPosition(0)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         enableEdgeToEdge()
         sharedPreferences = getSharedPreferences("SESSION", Context.MODE_PRIVATE)
         val apiService = ApiConfig.getApiService()
-        val storyRepository = StoryRepository(apiService, sharedPreferences)
+        storyDatabase = StoryDatabase.getInstance(this)
+        val storyRepository = StoryRepository(apiService, sharedPreferences, storyDatabase)
         val viewModelFactory = ViewModelFactory(storyRepository)
         mainViewModel = ViewModelProvider(this, viewModelFactory).get(MainViewModel::class.java)
         setContentView(R.layout.activity_main)
@@ -54,12 +65,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this@MainActivity, LoginActivity::class.java))
             finish()
         }
-
-//        mainViewModel.listStories.observe(this) { listStories ->
-//            setStoriesList(listStories)
-//        }
-
-
 
         mainViewModel.isErr.observe(this) {
 
@@ -80,7 +85,7 @@ class MainActivity : AppCompatActivity() {
                 listStoriesAdapter.retry()
             })
         binding.floatingActionButton.setOnClickListener {
-            startActivity(Intent(this@MainActivity, AddStoryActivity::class.java))
+            addStoryLauncher.launch(Intent(this@MainActivity, AddStoryActivity::class.java))
         }
         mainViewModel.story.observe(this, {
             listStoriesAdapter.submitData(lifecycle, it)
@@ -107,15 +112,6 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-//    private fun setStoriesList(storiesList: List<ListStoryItem>) {
-//        listStoriesAdapter.apply {
-//            listStories.clear()
-//            listStories.addAll(storiesList)
-//            notifyDataSetChanged()
-//        }
-//
-//    }
-
     fun loading(isLoading: Boolean) {
         if (isLoading != false) {
             binding.progressBar2.visibility = View.VISIBLE
@@ -140,12 +136,4 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    override fun onResume() {
-        super.onResume()
-        mainViewModel.story.observe(this, {
-            listStoriesAdapter.submitData(lifecycle, it)
-        })
-
-    }
 }

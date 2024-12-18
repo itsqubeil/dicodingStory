@@ -78,14 +78,14 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btn_gallery">
+        app:layout_constraintTop_toBottomOf="@+id/switchLocation">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/ed_add_description"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/description"
-            android:lines="8" />
+            android:lines="6" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -102,6 +102,17 @@
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/descLayout" />
+
+    <Switch
+        android:id="@+id/switchLocation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Input dengan lokasi"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_gallery" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

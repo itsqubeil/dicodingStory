@@ -1,16 +1,23 @@
 package test.dapuk.dicodingstory.ui.addstory
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.IntentSender
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +27,14 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationSettingsRequest
+import com.google.android.gms.location.Priority
 import com.google.gson.Gson
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -29,37 +44,30 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import test.dapuk.dicodingstory.R
-import test.dapuk.dicodingstory.data.repository.StoryRepository
-import test.dapuk.dicodingstory.data.response.RegisterResponse
-import test.dapuk.dicodingstory.data.retrofit.ApiConfig
-import test.dapuk.dicodingstory.data.sharedpref.SharedPreferenceManager
+import test.dapuk.dicodingstory.data.local.room.StoryDatabase
+import test.dapuk.dicodingstory.data.remote.repository.StoryRepository
+import test.dapuk.dicodingstory.data.remote.response.RegisterResponse
+import test.dapuk.dicodingstory.data.remote.retrofit.ApiConfig
+import test.dapuk.dicodingstory.data.local.sharedpref.SharedPreferenceManager
 import test.dapuk.dicodingstory.databinding.ActivityAddStoryBinding
 import test.dapuk.dicodingstory.ui.camera.CameraActivity
 import test.dapuk.dicodingstory.ui.camera.CameraActivity.Companion.CAMERAX_RESULT
 import test.dapuk.dicodingstory.ui.ViewModelFactory
 import test.dapuk.dicodingstory.ui.login.LoginActivity
+import test.dapuk.dicodingstory.ui.main.MainActivity
 import test.dapuk.dicodingstory.utils.reduceFileImage
 import test.dapuk.dicodingstory.utils.uriToFile
+import java.util.concurrent.TimeUnit
 
 class AddStoryActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAddStoryBinding
+    private lateinit var storyDatabase: StoryDatabase
     private var currentImageUri: Uri? = null
     private lateinit var addStoryViewModel: AddStoryViewModel
-    private val reqPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-                Toast.makeText(this, "Permission Granted", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(this, "Permission Denied", Toast.LENGTH_LONG).show()
-            }
-        }
-
-    private fun allPermissionGranted() =
-        ContextCompat.checkSelfPermission(
-            this,
-            REQUIRED_PERMISSION
-        ) == PackageManager.PERMISSION_DENIED
-
+    private lateinit var locationRequest: LocationRequest
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private var lat: Double? = null
+    private var lon: Double? = null
     private lateinit var sharedPreferencesManager: SharedPreferenceManager
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,8 +76,10 @@ class AddStoryActivity : AppCompatActivity() {
         val sharedPreferences: SharedPreferences =
             getSharedPreferences("SESSION", Context.MODE_PRIVATE)
         val apiService = ApiConfig.getApiService()
-        val storyRepository = StoryRepository(apiService, sharedPreferences)
+        storyDatabase = StoryDatabase.getInstance(this)
+        val storyRepository = StoryRepository(apiService, sharedPreferences, storyDatabase)
         val viewModelFactory = ViewModelFactory(storyRepository)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         addStoryViewModel = ViewModelProvider(this).get(AddStoryViewModel::class.java)
         setContentView(R.layout.activity_add_story)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -78,9 +88,6 @@ class AddStoryActivity : AppCompatActivity() {
             insets
         }
 
-        if (!allPermissionGranted()) {
-            reqPermission.launch(REQUIRED_PERMISSION)
-        }
 
         addStoryViewModel.currentImageUri.observe(this, { uri ->
             if (uri != null) {
@@ -91,7 +98,14 @@ class AddStoryActivity : AppCompatActivity() {
         binding.ivStoryimage.setImageResource(R.drawable.failed_load_img)
         binding.btnGallery.setOnClickListener { startGallery() }
         binding.btnCamera.setOnClickListener { startCamera() }
-        binding.buttonAdd.setOnClickListener { uploadImage() }
+        binding.buttonAdd.setOnClickListener {
+                uploadImage()
+        }
+        binding.switchLocation.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                getMyLastLocation()
+            }
+        }
         setContentView(binding.root)
     }
 
@@ -136,7 +150,7 @@ class AddStoryActivity : AppCompatActivity() {
             Toast.makeText(this, "Gambar belum dipilih", Toast.LENGTH_SHORT).show()
             return
         }
-        addStoryViewModel.currentImageUri.observe(this, { uri ->
+        addStoryViewModel.currentImageUri.observe(this) { uri ->
             val imageFile = uriToFile(uri!!, this).reduceFileImage()
             val description = binding.edAddDescription.text.toString()
             Log.d("image file", "showImage: ${imageFile.path}")
@@ -156,15 +170,23 @@ class AddStoryActivity : AppCompatActivity() {
                     val apiService = ApiConfig.getApiService()
                     val sharedPreferences: SharedPreferences =
                         getSharedPreferences("SESSION", Context.MODE_PRIVATE)
-                    val storyRepository = StoryRepository(apiService, sharedPreferences)
-                    val response = storyRepository.addStory(multipartBody, requestBody)
+                    val storyRepository =
+                        StoryRepository(apiService, sharedPreferences, storyDatabase)
+                    val response = if (lat != null && lon != null) {
+                        storyRepository.addStoryLocation(multipartBody, requestBody, lat!!, lon!!)
+                    } else {
+                        storyRepository.addStory(multipartBody, requestBody)
+                    }
                     if (response?.error == false) {
                         Log.d("Upload Success", response.message)
                         Toast.makeText(this@AddStoryActivity, "Upload Success", Toast.LENGTH_SHORT)
                             .show()
                         lifecycleScope.launch {
                             delay(500L)
-                            finish()
+                            setResult(Activity.RESULT_OK)
+                            val intent = Intent(this@AddStoryActivity, MainActivity::class.java)
+                            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                            startActivity(intent)
                         }
                     } else {
                         Log.e("Upload Failed", response?.message ?: "Unknown error")
@@ -183,9 +205,97 @@ class AddStoryActivity : AppCompatActivity() {
                     binding.progressBar3.visibility = View.GONE
                 }
             }
-        })
-
+        }
     }
+
+
+    private fun checkPermission(permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+    }
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        when {
+            permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false ||
+                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false -> {
+                getMyLastLocation()
+            }
+            else -> {
+                Toast.makeText(this, "Anda belum mengizinkan lokasi", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    private fun getMyLastLocation() {
+
+        if (checkPermission(Manifest.permission.ACCESS_FINE_LOCATION) &&
+            checkPermission(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+
+            if (isGPSEnabled()) {
+
+                val handler = Handler(Looper.getMainLooper())
+                val timeoutRunnable = Runnable {
+                    Toast.makeText(this, "Gagal mendapatkan lokasi", Toast.LENGTH_SHORT).show()
+                }
+                handler.postDelayed(timeoutRunnable, 3000)
+
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    handler.removeCallbacks(timeoutRunnable)
+                    if (location != null) {
+                        lat = location.latitude
+                        lon = location.longitude
+                    } else {
+                        requestLocationUpdate()
+                    }
+                }.addOnFailureListener {
+                    handler.removeCallbacks(timeoutRunnable)
+                    Toast.makeText(this, "Gagal mendapatkan lokasi: ${it.message}", Toast.LENGTH_SHORT).show()
+
+                }
+            } else {
+                Toast.makeText(this, "Gagal mendapatkan lokasi: GPS belum diaktifkan", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            requestPermissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
+    }
+
+    private fun isGPSEnabled(): Boolean {
+        val locationManager = this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+    }
+
+    private fun requestLocationUpdate() {
+        if (checkPermission(Manifest.permission.ACCESS_FINE_LOCATION) &&
+            checkPermission(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+
+            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L).build()
+
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                object : LocationCallback() {
+                    override fun onLocationResult(locationResult: LocationResult) {
+                        val location = locationResult.lastLocation
+                        if (location != null) {
+                            lat = location.latitude
+                            lon = location.longitude
+                        } else {
+                            Toast.makeText(this@AddStoryActivity, "Gagal mendapatkan lokasi. Pastikan GPS aktif.", Toast.LENGTH_SHORT).show()
+                        }
+                        fusedLocationClient.removeLocationUpdates(this)
+                    }
+                },
+                this.mainLooper
+            )
+        } else {
+            requestPermissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
+    }
+
+
 
     override fun onStart() {
         super.onStart()

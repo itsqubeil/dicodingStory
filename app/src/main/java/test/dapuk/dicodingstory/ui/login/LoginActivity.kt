@@ -13,7 +13,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import test.dapuk.dicodingstory.R
-import test.dapuk.dicodingstory.data.sharedpref.SharedPreferenceManager
+import test.dapuk.dicodingstory.data.local.sharedpref.SharedPreferenceManager
 import test.dapuk.dicodingstory.databinding.ActivityLoginBinding
 import test.dapuk.dicodingstory.ui.main.MainActivity
 import test.dapuk.dicodingstory.ui.register.RegisterActivity
@@ -47,7 +47,9 @@ class LoginActivity : AppCompatActivity() {
             var password = binding.edLoginPassword.text.toString()
             if (email.isNotEmpty() && password.isNotEmpty()) {
                 Toast.makeText(this, "Logging In", Toast.LENGTH_SHORT).show()
+
                 loginViewModel.login(email, password)
+
             } else {
                 when {
                     email.isEmpty() && password.isEmpty() -> Toast.makeText(

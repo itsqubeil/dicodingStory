@@ -8,8 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
-import test.dapuk.dicodingstory.data.response.StoryResponse
-import test.dapuk.dicodingstory.data.retrofit.ApiConfig
+import test.dapuk.dicodingstory.data.remote.response.StoryResponse
+import test.dapuk.dicodingstory.data.remote.retrofit.ApiConfig
 
 class RegisterViewModel : ViewModel() {
     private val _registerSuccess = MutableLiveData<Boolean>()

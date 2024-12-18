@@ -1,4 +1,4 @@
-package test.dapuk.dicodingstory.data.retrofit
+package test.dapuk.dicodingstory.data.remote.retrofit
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor

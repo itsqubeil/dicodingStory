@@ -18,10 +18,11 @@ import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.MarkerOptions
 import test.dapuk.dicodingstory.R
-import test.dapuk.dicodingstory.data.repository.StoryRepository
-import test.dapuk.dicodingstory.data.response.ListStoryItem
-import test.dapuk.dicodingstory.data.retrofit.ApiConfig
-import test.dapuk.dicodingstory.data.sharedpref.SharedPreferenceManager
+import test.dapuk.dicodingstory.data.local.room.StoryDatabase
+import test.dapuk.dicodingstory.data.remote.repository.StoryRepository
+import test.dapuk.dicodingstory.data.remote.response.ListStoryItem
+import test.dapuk.dicodingstory.data.remote.retrofit.ApiConfig
+import test.dapuk.dicodingstory.data.local.sharedpref.SharedPreferenceManager
 import test.dapuk.dicodingstory.databinding.ActivityMapsBinding
 import test.dapuk.dicodingstory.ui.ViewModelFactory
 import test.dapuk.dicodingstory.ui.login.LoginActivity
@@ -33,6 +34,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var sharedPreferencesManager: SharedPreferenceManager
     private lateinit var mapsViewModel: MapsViewModel
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var storyDatabase: StoryDatabase
     private val listStoriesAdapter = ListStoriesAdapter()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,7 +43,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         setContentView(binding.root)
         sharedPreferences = getSharedPreferences("SESSION", Context.MODE_PRIVATE)
         val apiService = ApiConfig.getApiService()
-        val storyRepository = StoryRepository(apiService, sharedPreferences)
+        storyDatabase = StoryDatabase.getInstance(this)
+        val storyRepository = StoryRepository(apiService, sharedPreferences, storyDatabase)
         val viewModelFactory = ViewModelFactory(storyRepository)
         mapsViewModel = ViewModelProvider(this, viewModelFactory).get(MapsViewModel::class.java)
         val mapFragment = supportFragmentManager

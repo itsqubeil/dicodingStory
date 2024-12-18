@@ -1,11 +1,11 @@
-package test.dapuk.dicodingstory.data.paging
+package test.dapuk.dicodingstory.data.remote.paging
 
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import test.dapuk.dicodingstory.data.response.ListStoryItem
-import test.dapuk.dicodingstory.data.retrofit.ApiService
+import test.dapuk.dicodingstory.data.remote.response.ListStoryItem
+import test.dapuk.dicodingstory.data.remote.retrofit.ApiService
 
 class storyPagingSource(private val apiService: ApiService, private val sharedPref: SharedPreferences) : PagingSource<Int, ListStoryItem>() {
 

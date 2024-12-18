@@ -15,16 +15,17 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import test.dapuk.dicodingstory.R
-import test.dapuk.dicodingstory.data.response.ListStoryItem
+import test.dapuk.dicodingstory.data.local.room.ListStoryItemLocal
+import test.dapuk.dicodingstory.data.remote.response.ListStoryItem
 import test.dapuk.dicodingstory.databinding.ItemListStoryBinding
 import test.dapuk.dicodingstory.ui.detail.DetailActivity
 
-class ListStoriesAdapter : PagingDataAdapter<ListStoryItem, ListStoriesAdapter.ListStoriesHolder>(
+class ListStoriesAdapter : PagingDataAdapter<ListStoryItemLocal, ListStoriesAdapter.ListStoriesHolder>(
     DIFF_CALLBACK
 ) {
     class ListStoriesHolder(private var binding: ItemListStoryBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(stories: ListStoryItem) {
+        fun bind(stories: ListStoryItemLocal) {
             stories.photoUrl.let {
                 Glide.with(binding.ivItemPhoto.context)
                     .load(it)
@@ -84,12 +85,12 @@ class ListStoriesAdapter : PagingDataAdapter<ListStoryItem, ListStoriesAdapter.L
         }
     }
     companion object {
-        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<ListStoryItem>() {
-            override fun areItemsTheSame(oldItem: ListStoryItem, newItem: ListStoryItem): Boolean {
+        val DIFF_CALLBACK = object : DiffUtil.ItemCallback<ListStoryItemLocal>() {
+            override fun areItemsTheSame(oldItem: ListStoryItemLocal, newItem: ListStoryItemLocal): Boolean {
                 return oldItem == newItem
             }
 
-            override fun areContentsTheSame(oldItem: ListStoryItem, newItem: ListStoryItem): Boolean {
+            override fun areContentsTheSame(oldItem: ListStoryItemLocal, newItem: ListStoryItemLocal): Boolean {
                 return oldItem.id == newItem.id
             }
         }

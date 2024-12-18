@@ -8,8 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
-import test.dapuk.dicodingstory.data.response.StoryResponse
-import test.dapuk.dicodingstory.data.retrofit.ApiConfig
+import test.dapuk.dicodingstory.data.remote.response.StoryResponse
+import test.dapuk.dicodingstory.data.remote.retrofit.ApiConfig
+import test.dapuk.dicodingstory.utils.EspressoIdlingResource
 
 class LoginViewModel : ViewModel() {
     private val _loginSuccess = MutableLiveData<Boolean>()
@@ -32,6 +33,7 @@ class LoginViewModel : ViewModel() {
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
+            EspressoIdlingResource.increment()
             _isLoading.value = true
             val apiResponse = ApiConfig.getApiService()
             try {
@@ -58,6 +60,7 @@ class LoginViewModel : ViewModel() {
                 Log.e("gagal", "${e.message}")
             } finally {
                 _isLoading.value = false
+                EspressoIdlingResource.decrement()
             }
         }
     }

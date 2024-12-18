@@ -1,4 +1,4 @@
-package test.dapuk.dicodingstory.data.response
+package test.dapuk.dicodingstory.data.remote.response
 
 import com.google.gson.annotations.SerializedName
 
@@ -60,13 +60,13 @@ data class ListStoryItem(
     val description: String,
 
     @field:SerializedName("lon")
-    val lon: Any,
+    val lon: Double,
 
     @field:SerializedName("id")
     val id: String,
 
     @field:SerializedName("lat")
-    val lat: Any
+    val lat: Double
 )
 
 data class StoryDetailResponse(

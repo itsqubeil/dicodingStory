@@ -1,9 +1,9 @@
-package test.dapuk.dicodingstory.data.sharedpref
+package test.dapuk.dicodingstory.data.local.sharedpref
 
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import test.dapuk.dicodingstory.data.response.LoginResult
+import test.dapuk.dicodingstory.data.remote.response.LoginResult
 
 
 class SharedPreferenceManager(context: Context) {
